@@ -8,6 +8,7 @@ interface FiberStore {
   loaded: boolean
   error: string | null
   loadFiberBatches: () => Promise<void>
+  refreshFiberBatches: () => Promise<void>
   addFiberBatch: (input: FiberBatchInput) => Promise<FiberBatch | null>
 }
 
@@ -18,6 +19,9 @@ export const useFiberStore = create<FiberStore>((set, get) => ({
   error: null,
   loadFiberBatches: async () => {
     if (get().loaded) return
+    await get().refreshFiberBatches()
+  },
+  refreshFiberBatches: async () => {
     set({ isLoading: true, error: null })
     try {
       const fiberBatches = await db.fiberBatches.orderBy('batchNo').toArray()
@@ -31,7 +35,7 @@ export const useFiberStore = create<FiberStore>((set, get) => ({
     try {
       const payload = plain(input)
       const id = Number(await db.fiberBatches.add(payload))
-      const created: FiberBatch = { ...payload, id, schemaRev: 2 }
+      const created: FiberBatch = { ...payload, id, schemaRev: 3 }
       set((state) => ({ fiberBatches: [created, ...state.fiberBatches] }))
       return created
     } catch {

@@ -8,6 +8,7 @@ interface SampleStore {
   loaded: boolean
   error: string | null
   loadSamples: () => Promise<void>
+  refreshSamples: () => Promise<void>
   addSample: (input: PaperSampleInput) => Promise<PaperSample | null>
 }
 
@@ -18,6 +19,9 @@ export const useSampleStore = create<SampleStore>((set, get) => ({
   error: null,
   loadSamples: async () => {
     if (get().loaded) return
+    await get().refreshSamples()
+  },
+  refreshSamples: async () => {
     set({ isLoading: true, error: null })
     try {
       const paperSamples = await db.paperSamples.orderBy('sampleNo').toArray()
@@ -31,7 +35,7 @@ export const useSampleStore = create<SampleStore>((set, get) => ({
     try {
       const payload = plain(input)
       const id = Number(await db.paperSamples.add(payload))
-      const created: PaperSample = { ...payload, id, schemaRev: 2 }
+      const created: PaperSample = { ...payload, id, schemaRev: 3 }
       set((state) => ({ paperSamples: [created, ...state.paperSamples] }))
       return created
     } catch {

@@ -8,6 +8,7 @@ interface MouldStore {
   loaded: boolean
   error: string | null
   loadMoulds: () => Promise<void>
+  refreshMoulds: () => Promise<void>
   addMould: (input: MouldInput) => Promise<Mould | null>
   setMouldState: (id: number, state: MouldStateValue) => Promise<void>
 }
@@ -19,6 +20,9 @@ export const useMouldStore = create<MouldStore>((set, get) => ({
   error: null,
   loadMoulds: async () => {
     if (get().loaded) return
+    await get().refreshMoulds()
+  },
+  refreshMoulds: async () => {
     set({ isLoading: true, error: null })
     try {
       const moulds = await db.moulds.orderBy('mouldNo').toArray()
@@ -32,7 +36,7 @@ export const useMouldStore = create<MouldStore>((set, get) => ({
     try {
       const payload = plain(input)
       const id = Number(await db.moulds.add(payload))
-      const created: Mould = { ...payload, id, schemaRev: 2 }
+      const created: Mould = { ...payload, id, schemaRev: 3 }
       set((state) => ({ moulds: [created, ...state.moulds] }))
       return created
     } catch {
@@ -42,9 +46,9 @@ export const useMouldStore = create<MouldStore>((set, get) => ({
   },
   setMouldState: async (id, nextState) => {
     try {
-      await db.moulds.update(id, { state: nextState, schemaRev: 2 })
+      await db.moulds.update(id, { state: nextState, schemaRev: 3 })
       set((state) => ({
-        moulds: state.moulds.map((mould) => (mould.id === id ? { ...mould, state: nextState, schemaRev: 2 } : mould)),
+        moulds: state.moulds.map((mould) => (mould.id === id ? { ...mould, state: nextState, schemaRev: 3 } : mould)),
         error: null,
       }))
     } catch {

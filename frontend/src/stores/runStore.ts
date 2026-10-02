@@ -9,6 +9,7 @@ interface RunStore {
   loaded: boolean
   error: string | null
   loadRuns: () => Promise<void>
+  refreshRuns: () => Promise<void>
   addRun: (input: SheetRunInput) => Promise<SheetRun | null>
   updateMeasuredGap: (id: number, measuredGap: number, standardGap: number) => Promise<void>
 }
@@ -20,6 +21,9 @@ export const useRunStore = create<RunStore>((set, get) => ({
   error: null,
   loadRuns: async () => {
     if (get().loaded) return
+    await get().refreshRuns()
+  },
+  refreshRuns: async () => {
     set({ isLoading: true, error: null })
     try {
       const sheetRuns = await db.sheetRuns.orderBy('runDate').reverse().toArray()
@@ -33,7 +37,7 @@ export const useRunStore = create<RunStore>((set, get) => ({
     try {
       const payload = plain(input)
       const id = Number(await db.sheetRuns.add(payload))
-      const created: SheetRun = { ...payload, id, schemaRev: 2 }
+      const created: SheetRun = { ...payload, id, schemaRev: 3 }
       set((state) => ({ sheetRuns: [created, ...state.sheetRuns] }))
       return created
     } catch {
@@ -44,9 +48,9 @@ export const useRunStore = create<RunStore>((set, get) => ({
   updateMeasuredGap: async (id, measuredGap, standardGap) => {
     const deviation = calculateDeviation(measuredGap, standardGap)
     try {
-      await db.sheetRuns.update(id, { measuredGap, deviation, schemaRev: 2 })
+      await db.sheetRuns.update(id, { measuredGap, deviation, schemaRev: 3 })
       set((state) => ({
-        sheetRuns: state.sheetRuns.map((run) => (run.id === id ? { ...run, measuredGap, deviation, schemaRev: 2 } : run)),
+        sheetRuns: state.sheetRuns.map((run) => (run.id === id ? { ...run, measuredGap, deviation, schemaRev: 3 } : run)),
         error: null,
       }))
     } catch {

@@ -1,7 +1,8 @@
-import { useState } from 'react'
-import { AppBar, Box, Button, Container, Snackbar, Toolbar, Typography } from '@mui/material'
+import { useEffect, useState } from 'react'
+import { AppBar, Badge, Box, Button, Container, Snackbar, Toolbar, Typography } from '@mui/material'
 import { Link, useLocation } from 'react-router-dom'
 import { AppRoutes } from './router'
+import { useImportStore } from './stores/importStore'
 import { exportDatabaseJson } from './utils/export'
 
 const navItems = [
@@ -10,6 +11,7 @@ const navItems = [
   { label: '纤维料批', path: '/fibers' },
   { label: '抄纸工序', path: '/runs' },
   { label: '成纸样本', path: '/samples' },
+  { label: '离线包合并', path: '/imports' },
 ]
 
 function PapertrailMark() {
@@ -25,6 +27,12 @@ function PapertrailMark() {
 export default function App() {
   const location = useLocation()
   const [exportMessage, setExportMessage] = useState('')
+  const pendingCount = useImportStore((state) => state.pendingCount)
+  const loadBatches = useImportStore((state) => state.loadBatches)
+
+  useEffect(() => {
+    void loadBatches()
+  }, [loadBatches])
 
   const handleExport = async () => {
     try {
@@ -54,6 +62,13 @@ export default function App() {
             <Box component="nav" aria-label="主导航" sx={{ display: 'flex', gap: 0.5, flex: 1, overflowX: 'auto' }}>
               {navItems.map((item) => {
                 const selected = location.pathname === item.path
+                const label = item.path === '/imports' && pendingCount > 0
+                  ? (
+                    <Badge badgeContent={pendingCount} color="warning" sx={{ '& .MuiBadge-badge': { right: -14, top: 2 } }}>
+                      {item.label}
+                    </Badge>
+                  )
+                  : item.label
                 return (
                   <Button
                     key={item.path}
@@ -64,7 +79,7 @@ export default function App() {
                     variant={selected ? 'contained' : 'text'}
                     sx={{ whiteSpace: 'nowrap', px: { xs: 1.25, md: 1.8 } }}
                   >
-                    {item.label}
+                    {label}
                   </Button>
                 )
               })}
