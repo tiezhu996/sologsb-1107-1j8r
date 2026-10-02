@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { SheetRun, SheetRunInput } from '../types/sheet-run'
-import { db, plain } from '../utils/db'
+import { CURRENT_SCHEMA_REV, db, plain } from '../utils/db'
 import { calculateDeviation } from '../utils/stripe'
 
 interface RunStore {
@@ -33,7 +33,7 @@ export const useRunStore = create<RunStore>((set, get) => ({
     try {
       const payload = plain(input)
       const id = Number(await db.sheetRuns.add(payload))
-      const created: SheetRun = { ...payload, id, schemaRev: 2 }
+      const created: SheetRun = { ...payload, id, schemaRev: CURRENT_SCHEMA_REV }
       set((state) => ({ sheetRuns: [created, ...state.sheetRuns] }))
       return created
     } catch {
@@ -44,9 +44,9 @@ export const useRunStore = create<RunStore>((set, get) => ({
   updateMeasuredGap: async (id, measuredGap, standardGap) => {
     const deviation = calculateDeviation(measuredGap, standardGap)
     try {
-      await db.sheetRuns.update(id, { measuredGap, deviation, schemaRev: 2 })
+      await db.sheetRuns.update(id, { measuredGap, deviation, schemaRev: CURRENT_SCHEMA_REV })
       set((state) => ({
-        sheetRuns: state.sheetRuns.map((run) => (run.id === id ? { ...run, measuredGap, deviation, schemaRev: 2 } : run)),
+        sheetRuns: state.sheetRuns.map((run) => (run.id === id ? { ...run, measuredGap, deviation, schemaRev: CURRENT_SCHEMA_REV } : run)),
         error: null,
       }))
     } catch {

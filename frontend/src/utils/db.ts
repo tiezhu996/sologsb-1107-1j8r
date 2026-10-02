@@ -1,9 +1,13 @@
 import Dexie, { type Table } from 'dexie'
 import type { FiberBatch } from '../types/fiber-batch'
 import type { Mould } from '../types/mould'
+import type { ImportBatch, MergeConflict, PendingLink } from '../types/offline-package'
 import type { PaperSample } from '../types/paper-sample'
 import type { SheetRun } from '../types/sheet-run'
 import { calculateDeviation, calculateMeshDensity } from './stripe'
+
+/** 业务记录的当前结构版本：旧数据第一次导入时回填为该版本。 */
+export const CURRENT_SCHEMA_REV = 2
 
 export function plain<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T
@@ -68,6 +72,9 @@ class GbPaperMillDatabase extends Dexie {
   fiberBatches!: Table<FiberBatch, number>
   sheetRuns!: Table<SheetRun, number>
   paperSamples!: Table<PaperSample, number>
+  importBatches!: Table<ImportBatch, number>
+  mergeConflicts!: Table<MergeConflict, number>
+  pendingLinks!: Table<PendingLink, number>
 
   constructor() {
     super('gbpapermill-db')
@@ -95,6 +102,12 @@ class GbPaperMillDatabase extends Dexie {
       await transaction.table('paperSamples').toCollection().modify((value: Record<string, unknown>) => {
         value.schemaRev = 2
       })
+    })
+    // version(3)：离线包合并支撑表。批次按 packageId 幂等，分歧与缺上游记录按 批次+类型+业务编号 去重。
+    this.version(3).stores({
+      importBatches: '++id,&packageId,status,importedAt',
+      mergeConflicts: '++id,&[batchId+entity+bizNo],batchId,status',
+      pendingLinks: '++id,&[batchId+entity+bizNo],batchId,status',
     })
     this.on('populate', () => this.seed())
   }

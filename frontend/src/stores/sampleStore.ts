@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { PaperSample, PaperSampleInput } from '../types/paper-sample'
-import { db, plain } from '../utils/db'
+import { CURRENT_SCHEMA_REV, db, plain } from '../utils/db'
 
 interface SampleStore {
   paperSamples: PaperSample[]
@@ -31,7 +31,7 @@ export const useSampleStore = create<SampleStore>((set, get) => ({
     try {
       const payload = plain(input)
       const id = Number(await db.paperSamples.add(payload))
-      const created: PaperSample = { ...payload, id, schemaRev: 2 }
+      const created: PaperSample = { ...payload, id, schemaRev: CURRENT_SCHEMA_REV }
       set((state) => ({ paperSamples: [created, ...state.paperSamples] }))
       return created
     } catch {
